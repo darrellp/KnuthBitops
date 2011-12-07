@@ -359,14 +359,14 @@ namespace KnuthBitops
 			return SwapBitsMask(n, pos1, pos2, 1ul << pos1);
 		}
 	
-		protected static ulong SwapBitsMask(ulong n, int pos1, int pos2, ulong mask)
+		private static ulong SwapBitsMask(ulong n, int pos1, int pos2, ulong mask)
 		{
 			int delta = pos2 - pos1;
 			ulong y =  (n ^ (n >> delta)) & mask;
 			return n ^ y ^ (y << delta);
 		}
 	
-		protected static ulong SwapBitsMask(ulong n, int delta, ulong mask)
+		internal static ulong SwapBitsMask(ulong n, int delta, ulong mask)
 		{
 			return SwapBitsMask(n, 0, delta, mask);
 		}
