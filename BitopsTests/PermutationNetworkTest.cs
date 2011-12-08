@@ -10,13 +10,16 @@ namespace BitopsTests
 		public void TestPermutationNetwork()
 		{
 			byte[] permutation = new byte[64];
+
+			// Identity permutation
 			for (byte i = 0; i < 64; i++)
 			{
 				permutation[i] = i;
 			}
-		
 			PermutationNetwork pnwk = new PermutationNetwork(permutation);
 			Assert.AreEqual(56ul, pnwk.Permute(56));
+
+			// Swap unit and two's bits
 			permutation[0] = 1;
 			permutation[1] = 0;
 			pnwk = new PermutationNetwork(permutation);
@@ -25,6 +28,8 @@ namespace BitopsTests
 			Assert.AreEqual(3ul, pnwk.Permute(3));
 			Assert.AreEqual(5ul, pnwk.Permute(6));
 			Assert.AreEqual(6ul, pnwk.Permute(5));
+
+			// Cycle the bottom four bits
 			permutation[0] = 1;
 			permutation[1] = 2;
 			permutation[2] = 3;
