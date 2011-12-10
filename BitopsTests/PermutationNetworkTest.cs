@@ -55,6 +55,7 @@ namespace BitopsTests
 			Assert.AreEqual(1ul, pnwk.Permute(8));
 			Assert.AreEqual(3ul, pnwk.Permute(9));
 
+			// Random permutation
 			Random rnd = new Random(0);
 			for (int i = 0; i < 63; i++)
 			{

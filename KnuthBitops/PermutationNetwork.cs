@@ -83,7 +83,18 @@ namespace KnuthBitops
 			}
 			return check == -1;
 		}
-	
+
+		////////////////////////////////////////////////////////////////////////////////////////////////////
+		/// <summary>	Private constructor. </summary>
+		///
+		/// <remarks>	
+		/// Since this is only called internally and we check the permutation on the public constructor,
+		/// there's no need to check the permutation here.  Darrellp, 12/10/2011. 
+		/// </remarks>
+		///
+		/// <param name="permutation">	The permutation we will use to permute the bits. </param>
+		/// <param name="phaseParm">	The phase parm. </param>
+		////////////////////////////////////////////////////////////////////////////////////////////////////
 		private PermutationNetwork(byte[] permutation, int phaseParm) : this()
 		{
 			Initialize(permutation, phaseParm);
@@ -137,6 +148,37 @@ namespace KnuthBitops
 			ExtractMasks(permutationNetworkEven, permutationNetworkOdd, inputMask, outputMask);
 		}
 
+		////////////////////////////////////////////////////////////////////////////////////////////////////
+		/// <summary>	Gets the inner permutations. </summary>
+		///
+		/// <remarks>	
+		/// Two things have to be calculated here in tandem: which switchers are turned on and the
+		/// permutation in each inner permutation network.  Knuth gives a demo of how to do this.  It
+		/// consists essentially of working our way back and forth across the permutation networks.  With
+		/// each pass we have a start pin and an end pin.  Depending on which direction we're working,
+		/// the start pin could be either and input or an output pin.  Whichever side it's on, the end
+		/// pin is the connected pin on the other side.  When the switcher for a pin is disabled, the pin
+		/// defaults to the network of the same parity as the pin.  In each pass we know which inner
+		/// network the start pin is connected to.  The end pin must be connected to the same network as
+		/// the start pin.  This determines whether the end switcher needs to be activated to ensure that
+		/// the start and end pin are on the same inner network.  The actual pins in the inner
+		/// permutation are just the indices of the corresponding switchers.  After making that
+		/// determination, we have all the information we need to repeat the process using the other pin
+		/// on the end pin's switcher as the start pin.  It's guaranteed that after making enough of
+		/// these passes we'll end up back on our starting pin.  At that point, the cycle starting at
+		/// that pin is complete. If we've handled all the input pins, then we're done.  If not, we have
+		/// to pick an unmapped pin and repeat the cycling process at that pin.  Eventually we have
+		/// handled all pins and the process is complete. Darrellp, 12/10/2011. 
+		/// </remarks>
+		///
+		/// <param name="permutationOuter">	The permutation we're trying to achieve. </param>
+		/// <param name="delta">			The distance between bits in the outer permutation. </param>
+		/// <param name="phase">			The index of the first bit to be permuted. </param>
+		/// <param name="inputMask">		[out] Our own input mask. </param>
+		/// <param name="outputMask">		[out] Our own output mask. </param>
+		///
+		/// <returns>	The inner permutations. </returns>
+		////////////////////////////////////////////////////////////////////////////////////////////////////
 		private static byte[][] GetInnerPermutations(byte[] permutationOuter, int delta, int phase, out ulong inputMask, out ulong outputMask)
 		{
 			inputMask = 0;
@@ -158,33 +200,34 @@ namespace KnuthBitops
 			bool[] mappedToDest = new bool[size];
 			int cMapped = 0;
 
+			// While there are cycles to map...
 			while (cMapped < size)
 			{
 				bool fInput = true;
 				byte network = 0;
-				byte pin;
+				byte startPin;
 
 				// Find the next unmapped input
-				for (pin = 0; pin < size; pin++)
+				for (startPin = 0; startPin < size; startPin++)
 				{
-					if (!mappedToDest[pin])
+					if (!mappedToDest[startPin])
 					{
 						break;
 					}
 				}
 
 				// Keep track of our starting pin
-				byte startPin = pin;
+				byte cycleStartPin = startPin;
 
 				// Adjacent pairs of pins are connected to a switcher which
 				// may or may not swap them around.  Get the index for the
 				// switcher we're attached to.
-				byte switcher = (byte)(pin / 2);
+				byte switcher = (byte)(startPin / 2);
 
 				// This is the pin we need to be mapped to
-				byte mappedPin = permutationOuter[pin];
+				byte endPin = permutationOuter[startPin];
 
-				// Trace the cycle starting at startBit
+				// Trace the cycle starting at startPin
 				while (true)
 				{
 					// We alternate from input to output of the current permutation network
@@ -192,10 +235,10 @@ namespace KnuthBitops
 
 					// Where we came from
 					byte switcherPrev = switcher;
-					switcher = (byte)(mappedPin / 2);
+					switcher = (byte)(endPin / 2);
 
 					// If we're connected to the wrong network currently...
-					if ((mappedPin & 1) != network)
+					if ((endPin & 1) != network)
 					{
 						// If we're on the input side...);
 						if (fInput)
@@ -211,7 +254,7 @@ namespace KnuthBitops
 					}
 
 					// Mark this input bit as mapped
-					mappedToDest[fInput ? mappedPin : pin] = true;
+					mappedToDest[fInput ? endPin : startPin] = true;
 
 					// mark the connections that need to be made in the inner network
 					permutationsInner[network][fInput ? switcher : switcherPrev] = fInput ? switcherPrev : switcher;
@@ -220,24 +263,33 @@ namespace KnuthBitops
 					cMapped++;
 
 					// Get the other pin on this switcher
-					pin = (byte)(mappedPin ^ 1);
+					startPin = (byte)(endPin ^ 1);
 
 					// If we're back to startPin on the input side, then we've completed the cycle
-					if (pin == startPin && fInput)
+					if (startPin == cycleStartPin && fInput)
 					{
 						break;
 					}
 
-					// The other pin on our switcher needs to go to the other network
+					// The other pin on our switcher has to go to the other network
 					network = (byte)(1 - network);
 
 					// The pin we map to on the other side of the network
-					mappedPin = fInput ? permutationOuter[pin] : reversePermutation[pin];
+					endPin = fInput ? permutationOuter[startPin] : reversePermutation[startPin];
 				}
 			}
 			return permutationsInner;
 		}
 
+		////////////////////////////////////////////////////////////////////////////////////////////////////
+		/// <summary>	Gets the reverse permutation for an input permutation. </summary>
+		///
+		/// <remarks>	Darrellp, 12/10/2011. </remarks>
+		///
+		/// <param name="permutation">	Original permutation. </param>
+		///
+		/// <returns>	The reverse permutation. </returns>
+		////////////////////////////////////////////////////////////////////////////////////////////////////
 		private static byte[] GetReversePermutation(byte[] permutation)
 		{
 			int size = permutation.Length;
@@ -249,6 +301,22 @@ namespace KnuthBitops
 			return reversePermutation;
 		}
 
+		////////////////////////////////////////////////////////////////////////////////////////////////////
+		/// <summary>	Adds a swap to a mask. </summary>
+		///
+		/// <remarks>	
+		/// Swaps are produced by the SwapBitsMask operation which takes a mask to indicate which bits
+		/// are to be swapped.  This routine inserts the proper bit into the mask to force the requested
+		/// swap.  Darrellp, 12/10/2011. 
+		/// </remarks>
+		///
+		/// <param name="maskCur">	The current mask. </param>
+		/// <param name="switcher">	The switcher to be swapped. </param>
+		/// <param name="delta">	The distance between bits in the permutation. </param>
+		/// <param name="phase">	The index of the first bit to be permuted. </param>
+		///
+		/// <returns>	New mask with the correct bit turned on to effect the swap. </returns>
+		////////////////////////////////////////////////////////////////////////////////////////////////////
 		private static ulong AddSwap(ulong maskCur, int switcher, int delta, int phase)
 		{
 			return maskCur | (1ul << (2 * switcher * delta + phase));
@@ -281,6 +349,15 @@ namespace KnuthBitops
 
 		private static readonly int[] Deltas = new[] { 1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1 };
 
+		////////////////////////////////////////////////////////////////////////////////////////////////////
+		/// <summary>	Permutes the bits in the input. </summary>
+		///
+		/// <remarks>	Darrellp, 12/10/2011. </remarks>
+		///
+		/// <param name="n">	The input ulong to be permuted. </param>
+		///
+		/// <returns>	The input after it's bits have been permuted properly. </returns>
+		////////////////////////////////////////////////////////////////////////////////////////////////////
 		public ulong Permute(ulong n)
 		{
 			for (int i = 0; i < Deltas.Length; i++)
