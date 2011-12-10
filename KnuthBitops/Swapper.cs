@@ -8,10 +8,5 @@ namespace KnuthBitops
 		{
 			Masks.Add((permutation[0] == 1) ? 1ul << phase : 0);
 		}
-
-		internal override List<ulong> GetMasks()
-		{
-			return Masks;
-		}
 	}
 }

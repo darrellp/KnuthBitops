@@ -20,7 +20,7 @@ namespace KnuthBitops
 		        54, 26, 40, 15, 34, 20, 31, 10, 25, 14, 19, 9, 13, 8, 07, 06
 		    };
 
-		private const long RulerConst64 = 0x03f79d71b4ca8b09l;
+		private const long RulerConst64 = 0x03f79d71b4ca8b09L;
 
 		// DropRightmostOne
 		public static long DropRightmostOne(long n)

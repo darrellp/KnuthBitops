@@ -139,7 +139,7 @@ namespace BitopsTests
 		[TestMethod]
 		public void TestLeftmostOneIndex()
 		{
-			Assert.AreEqual(36, Bitops.LeftmostOneIndex(0x10ccccccccl));
+			Assert.AreEqual(36, Bitops.LeftmostOneIndex(0x10ccccccccL));
 			Assert.AreEqual(-1, Bitops.LeftmostOneIndex((long)0));
 			Assert.AreEqual(10, Bitops.LeftmostOneIndex(new BigInteger(1024)));
 			Assert.AreEqual(-1, Bitops.LeftmostOneIndex(BigInteger.Zero));

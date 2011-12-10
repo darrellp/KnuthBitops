@@ -35,10 +35,11 @@ namespace KnuthBitops
 	public class PermutationNetwork
 	{
 		// The list of masks for the final permutation
-		protected List<ulong> Masks = new List<ulong>();
+		protected List<ulong> Masks { get; set;}
 	
 		protected PermutationNetwork()
 		{
+			Masks = new List<ulong>();
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -51,7 +52,7 @@ namespace KnuthBitops
 		///
 		/// <param name="permutation">	The permutation we will use to permute the bits. </param>
 		////////////////////////////////////////////////////////////////////////////////////////////////////
-		public PermutationNetwork(byte[] permutation)
+		public PermutationNetwork(byte[] permutation) : this()
 		{
 			if (!CheckPermutation(permutation))
 			{
@@ -83,7 +84,7 @@ namespace KnuthBitops
 			return check == -1;
 		}
 	
-		private PermutationNetwork(byte[] permutation, int phaseParm)
+		private PermutationNetwork(byte[] permutation, int phaseParm) : this()
 		{
 			Initialize(permutation, phaseParm);
 		}
@@ -123,7 +124,7 @@ namespace KnuthBitops
 			{
 				// The recursion ends here by creating two swappers rather than normal permutation networks
 				permutationNetworkEven = new Swapper(permutationsInner[0], phase);
-				permutationNetworkOdd = new Swapper(permutationsInner[1], phase);
+				permutationNetworkOdd = new Swapper(permutationsInner[1], phase + delta);
 			}
 			else
 			{
@@ -161,27 +162,27 @@ namespace KnuthBitops
 			{
 				bool fInput = true;
 				byte network = 0;
-				byte bit;
+				byte pin;
 
 				// Find the next unmapped input
-				for (bit = 0; bit < size; bit++)
+				for (pin = 0; pin < size; pin++)
 				{
-					if (!mappedToDest[bit])
+					if (!mappedToDest[pin])
 					{
 						break;
 					}
 				}
 
-				// Keep track of our starting bit
-				byte startBit = bit;
+				// Keep track of our starting pin
+				byte startPin = pin;
 
-				// Each pair of inputs/outputs is potentially connected to a
-				// switcher which swaps them around.  Get the index for the
+				// Adjacent pairs of pins are connected to a switcher which
+				// may or may not swap them around.  Get the index for the
 				// switcher we're attached to.
-				byte switcher = (byte)(bit / 2);
+				byte switcher = (byte)(pin / 2);
 
-				// This is the bit we need to be mapped to
-				byte mapbit = permutationOuter[bit];
+				// This is the pin we need to be mapped to
+				byte mappedPin = permutationOuter[pin];
 
 				// Trace the cycle starting at startBit
 				while (true)
@@ -191,12 +192,12 @@ namespace KnuthBitops
 
 					// Where we came from
 					byte switcherPrev = switcher;
-					switcher = (byte)(mapbit / 2);
+					switcher = (byte)(mappedPin / 2);
 
 					// If we're connected to the wrong network currently...
-					if ((mapbit & 1) != network)
+					if ((mappedPin & 1) != network)
 					{
-						// If we're on the input side...
+						// If we're on the input side...);
 						if (fInput)
 						{
 							// Swap the two input connections around
@@ -210,26 +211,28 @@ namespace KnuthBitops
 					}
 
 					// Mark this input bit as mapped
-					mappedToDest[fInput ? mapbit : bit] = true;
+					mappedToDest[fInput ? mappedPin : pin] = true;
 
 					// mark the connections that need to be made in the inner network
-					permutationsInner[network][fInput ? switcherPrev : switcher] = fInput ? switcher : switcherPrev;
+					permutationsInner[network][fInput ? switcher : switcherPrev] = fInput ? switcherPrev : switcher;
 
 					// We've mapped one more pin
 					cMapped++;
 
 					// Get the other pin on this switcher
-					bit = (byte)(mapbit ^ 1);
+					pin = (byte)(mappedPin ^ 1);
 
-					// It needs to go to the other network
-					network = (byte)(1 - network);
-					mapbit = fInput ? permutationOuter[bit] : reversePermutation[bit];
-
-					// If we're back to startBit on the input side, then we've completed the cycle
-					if (bit == startBit && fInput)
+					// If we're back to startPin on the input side, then we've completed the cycle
+					if (pin == startPin && fInput)
 					{
 						break;
 					}
+
+					// The other pin on our switcher needs to go to the other network
+					network = (byte)(1 - network);
+
+					// The pin we map to on the other side of the network
+					mappedPin = fInput ? permutationOuter[pin] : reversePermutation[pin];
 				}
 			}
 			return permutationsInner;
@@ -252,7 +255,7 @@ namespace KnuthBitops
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////////////////
-		/// <summary>	Add this network's contribute to the mask list. </summary>
+		/// <summary>	Add this network's contribution to the mask list. </summary>
 		///
 		/// <remarks>	
 		/// Extract the masks from our inner networks, interleave them and wrap the resultant list with
@@ -266,19 +269,14 @@ namespace KnuthBitops
 		////////////////////////////////////////////////////////////////////////////////////////////////////
 		private void ExtractMasks(PermutationNetwork even, PermutationNetwork odd, ulong inputMask, ulong outputMask)
 		{
-			List<ulong> masksEven = even.GetMasks();
-			List<ulong> masksOdd = odd.GetMasks();
+			List<ulong> masksEven = even.Masks;
+			List<ulong> masksOdd = odd.Masks;
 			Masks.Add(inputMask);
 			for (int i = 0; i < masksEven.Count; i++)
 			{
 				Masks.Add(masksEven[i] | masksOdd[i]);
 			}
 			Masks.Add(outputMask);
-		}
-
-		internal virtual List<ulong> GetMasks()
-		{
-			return Masks;
 		}
 
 		private static readonly int[] Deltas = new[] { 1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1 };
