@@ -65,7 +65,7 @@ namespace BitopsTests
 				permutation[swapIndex] = b;
 			}
 			pnwk = new PermutationNetwork(permutation);
-			ulong testVal = ((ulong)rnd.Next() << 32) | (ulong)rnd.Next();
+			ulong testVal = ((ulong)rnd.Next() << 32) | (uint)rnd.Next();
 			ulong resultVal = pnwk.Permute(testVal);
 			TestPerm(permutation, testVal, resultVal);
 		}
