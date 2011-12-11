@@ -22,6 +22,15 @@ namespace KnuthBitops
 
 		private const long RulerConst64 = 0x03f79d71b4ca8b09L;
 
+		public const ulong Mu0 = 0x5555555555555555UL;
+		public const ulong Mu1 = 0x3333333333333333UL;
+		public const ulong Mu2 = 0x0f0f0f0f0f0f0f0fUL;
+		public const ulong Mu3 = 0x00ff00ff00ff00ffUL;
+		public const ulong Mu4 = 0x0000ffff0000ffffUL;
+		public const ulong Mu5 = 0x00000000ffffffffUL;
+
+		public static readonly ulong[] Mus = new[] {Mu0, Mu1, Mu2, Mu3, Mu4, Mu5};
+
 		// DropRightmostOne
 		public static long DropRightmostOne(long n)
 		{
@@ -368,6 +377,33 @@ namespace KnuthBitops
 		{
 			ulong y = (n ^ (n >> delta)) & mask;
 			return n ^ y ^ (y << delta);
+		}
+
+		public static ulong ReverseBits(ulong x)
+		{
+			int iShift = 1;
+
+			for (int iMu = 0; iMu < 5; iMu++, iShift *= 2)
+			{
+				x = ReverseStep(x, iMu, iShift);
+			}
+			return (x >> 32) | (x << 32);
+		}
+
+		static ulong ReverseStep(ulong x, int iMu, int iShift)
+		{
+			ulong mu = Mus[iMu];
+			ulong y = (x >> iShift) & mu;
+			ulong z = (x & mu) << iShift;
+			return y | z;
+		}
+
+		public static int BitCount(ulong x)
+		{
+			ulong y = x - ((x >> 1) & Mu0);
+			y = (y & Mu1) + ((y >> 2) & Mu1);
+			y = (y + (y >> 4)) & Mu2;
+			return (int)((0x0101010101010101UL * y) >> 56);
 		}
 	}
 }

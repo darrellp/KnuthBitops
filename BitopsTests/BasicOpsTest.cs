@@ -144,5 +144,17 @@ namespace BitopsTests
 			Assert.AreEqual(10, Bitops.LeftmostOneIndex(new BigInteger(1024)));
 			Assert.AreEqual(-1, Bitops.LeftmostOneIndex(BigInteger.Zero));
 		}
+
+		[TestMethod]
+		public void TestReverseBits()
+		{
+			Assert.AreEqual(0x0123456789abcdefUL, Bitops.ReverseBits(0xf7b3d591e6a2c480UL));
+		}
+
+		[TestMethod]
+		public void TestBitcount()
+		{
+			Assert.AreEqual(19, Bitops.BitCount(0x111111f111111111UL));
+		}
 	}
 }
