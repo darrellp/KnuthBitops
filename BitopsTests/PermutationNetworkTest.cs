@@ -20,9 +20,9 @@ namespace BitopsTests
 				Identity[i] = i;
 			}
 
-			for (int i1 = 0; i1 < 63; i1++)
+			for (int i1 = 0; i1 < 62; i1++)
 			{
-				for (int i2 = i1; i2 < 64; i2++)
+				for (int i2 = i1 + 1; i2 < 64; i2++)
 				{
 					TestTwoCycle(i1, i2, permutation);
 				}

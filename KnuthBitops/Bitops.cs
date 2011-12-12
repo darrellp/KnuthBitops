@@ -405,5 +405,10 @@ namespace KnuthBitops
 			y = (y + (y >> 4)) & Mu2;
 			return (int)((0x0101010101010101UL * y) >> 56);
 		}
+
+		internal static ulong ShiftBitsMask(ulong x, int delta, ulong mask)
+		{
+			return x ^ ((x ^ (x >> delta)) & mask);
+		}
 	}
 }

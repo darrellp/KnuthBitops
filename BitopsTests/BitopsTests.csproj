@@ -49,6 +49,7 @@
     <Compile Include="BasicOpsTest.cs" />
     <Compile Include="PermutationNetworkTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ScruncherTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\KnuthBitops\KnuthBitops.csproj">

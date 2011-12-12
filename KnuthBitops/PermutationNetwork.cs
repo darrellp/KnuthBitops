@@ -79,7 +79,7 @@ namespace KnuthBitops
 			long check = 0;
 			for (int i = 0; i < 64; i++)
 			{
-				check |= (1 << i);
+				check |= 1 << i;
 			}
 			return check == -1;
 		}
