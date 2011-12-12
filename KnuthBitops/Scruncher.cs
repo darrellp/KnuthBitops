@@ -7,10 +7,13 @@
 		public Scruncher(ulong scrunchMask)
 		{
 			ulong phi = ~scrunchMask;
-			int k = 0;
 			int iShiftK = 1;
-			while (phi != 0)
+			for (int k = 0; k < _masks.Length; k++, iShiftK <<= 1)
 			{
+				if (phi == 0)
+				{
+					break;
+				}
 				ulong x = phi;
 				int iShift = 1;
 				for (int l = 0; l < 6; l++, iShift <<= 1)
@@ -19,8 +22,6 @@
 				}
 				_masks[k] = x;
 				phi = (phi & ~x) >> iShiftK;
-				k++;
-				iShiftK <<= 1;
 			}
 		}
 
