@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using KnuthBitops;
 
@@ -105,35 +106,35 @@ namespace BitopsTests
 		}
 	
 		[TestMethod]
-		public void TestRuler()
+		public void TestRightmostOneIndex()
 		{
-			Assert.AreEqual(0, Bitops.Ruler((long)0));
-			Assert.AreEqual(0, Bitops.Ruler((short)0));
-			Assert.AreEqual(0, Bitops.Ruler((byte)0));
-			Assert.AreEqual(0, Bitops.Ruler(0));
-			Assert.AreEqual(0, Bitops.Ruler(new BigInteger(0)));
-			Assert.AreEqual(0, Bitops.Ruler((long)(-1)));
-			Assert.AreEqual(0, Bitops.Ruler((short)(-1)));
-			Assert.AreEqual(0, Bitops.Ruler((byte)(0xff)));
-			Assert.AreEqual(0, Bitops.Ruler(-1));
-			Assert.AreEqual(0, Bitops.Ruler(new BigInteger(-1)));
+			Assert.AreEqual(-1, Bitops.RightmostOneIndex((long)0));
+			Assert.AreEqual(-1, Bitops.RightmostOneIndex((short)0));
+			Assert.AreEqual(-1, Bitops.RightmostOneIndex((byte)0));
+			Assert.AreEqual(-1, Bitops.RightmostOneIndex(0));
+			Assert.AreEqual(-1, Bitops.RightmostOneIndex(new BigInteger(0)));
+			Assert.AreEqual(0, Bitops.RightmostOneIndex((long)(-1)));
+			Assert.AreEqual(0, Bitops.RightmostOneIndex((short)(-1)));
+			Assert.AreEqual(0, Bitops.RightmostOneIndex((byte)(0xff)));
+			Assert.AreEqual(0, Bitops.RightmostOneIndex(-1));
+			Assert.AreEqual(0, Bitops.RightmostOneIndex(new BigInteger(-1)));
 			for (long i = 0, l = 1; l != 0; l <<= 1, i++)
 			{
-				Assert.AreEqual(i, Bitops.Ruler(l));
+				Assert.AreEqual(i, Bitops.RightmostOneIndex(l));
 			}
 			for (int i = 0, l = 1; l != 0; l <<= 1, i++)
 			{
-				Assert.AreEqual(i, Bitops.Ruler(l));
+				Assert.AreEqual(i, Bitops.RightmostOneIndex(l));
 			}
 			for (short i = 0, l = 1; l != 0; l <<= 1, i++)
 			{
-				Assert.AreEqual(i, Bitops.Ruler(l));
+				Assert.AreEqual(i, Bitops.RightmostOneIndex(l));
 			}
 			for (byte i = 0, l = 1; l != 0; l <<= 1, i++)
 			{
-				Assert.AreEqual(i, Bitops.Ruler(l));
+				Assert.AreEqual(i, Bitops.RightmostOneIndex(l));
 			}
-			Assert.AreEqual(8, Bitops.Ruler(new BigInteger(256)));
+			Assert.AreEqual(8, Bitops.RightmostOneIndex(new BigInteger(256)));
 		}
 	
 		[TestMethod]
@@ -155,6 +156,134 @@ namespace BitopsTests
 		public void TestBitcount()
 		{
 			Assert.AreEqual(19, Bitops.BitCount(0x111111f111111111UL));
+		}
+
+		[TestMethod]
+		public void NextFragmentedFieldTest()
+		{
+			ulong chi = 0x101010;
+			ulong x = 0;
+			x = Bitops.NextFragmentedField(x, chi);
+			Assert.AreEqual(0x000010UL, x);
+			x = Bitops.NextFragmentedField(x, chi);
+			Assert.AreEqual(0x001000UL, x);
+			x = Bitops.NextFragmentedField(x, chi);
+			Assert.AreEqual(0x001010UL, x);
+			x = Bitops.NextFragmentedField(x, chi);
+			Assert.AreEqual(0x100000UL, x);
+			x = Bitops.NextFragmentedField(x, chi);
+			Assert.AreEqual(0x100010UL, x);
+			x = Bitops.NextFragmentedField(x, chi);
+			Assert.AreEqual(0x101000UL, x);
+		}
+
+		[TestMethod]
+		public void NextSubcubeVertexTest()
+		{
+			ulong a = 0x101010;
+			ulong b = 0xf;
+			ulong x = b;
+			x = Bitops.NextSubcubeVertex(x, a, b);
+			Assert.AreEqual(0x00001fUL, x);
+			x = Bitops.NextSubcubeVertex(x, a, b);
+			Assert.AreEqual(0x00100fUL, x);
+			x = Bitops.NextSubcubeVertex(x, a, b);
+			Assert.AreEqual(0x00101fUL, x);
+			x = Bitops.NextSubcubeVertex(x, a, b);
+			Assert.AreEqual(0x10000fUL, x);
+			x = Bitops.NextSubcubeVertex(x, a, b);
+			Assert.AreEqual(0x10001fUL, x);
+			x = Bitops.NextSubcubeVertex(x, a, b);
+			Assert.AreEqual(0x10100fUL, x);
+		}
+
+		[TestMethod]
+		public void AddFragmentedFieldsTest()
+		{
+			//       0x10f0302030e0a003
+			//     + 0xf03020f040202005
+			//  mask 0xf0f0f0f0f0f0f00f
+			//       ------------------
+			//       0x102050108000c008
+			ulong result = Bitops.AddFragmentedFields(0x10f0302030e0a003, 0xf03020f040202005, 0xf0f0f0f0f0f0f00f);
+			Assert.AreEqual(0x102060108000c008UL, result);
+		}
+
+		[TestMethod]
+		public void AddBytesTest()
+		{
+			//   0xff 00 f0 32 20 30 40 50
+			// + 0x02 33 10 24 f0 e0 d0 c0
+			//   -------------------------
+			//   0x01 33 00 56 10 10 10 10
+			Assert.AreEqual(0x0133005610101010UL, Bitops.AddBytes(0xff00f03220304050UL, 0x02331024f0e0d0c0UL));
+		}
+
+		[TestMethod]
+		public void SubtractBytesTest()
+		{
+			//   0xff 00 f0 32 20 30 40 50
+			// - 0x02 33 10 24 f0 e0 d0 c0
+			//   -------------------------
+			//   0xfd cd e0 0e 30 50 70 90
+			ulong result = Bitops.SubtractBytes(0xff00f03220304050UL, 0x02331024f0e0d0c0UL);
+			Assert.AreEqual(0xfdcde00e30507090UL, result);
+		}
+
+		[TestMethod]
+		public void AverageBytesTest()
+		{
+			//       0x10f0302030e0a003
+			//       0xf03020f040202005
+			//       ------------------
+			//       0x8090288838806004
+			ulong result = Bitops.AverageBytes(0x10f0302030e0a003, 0xf03020f040202005);
+			Assert.AreEqual(0x8090288838806004UL, result);
+		}
+
+		[TestMethod]
+		public void IsAnyByteZeroTest()
+		{
+			Assert.IsFalse(Bitops.IsAnyByteZero(0x123456789abcdef0UL));
+			Assert.IsFalse(Bitops.IsAnyByteZero(0x123456700abcdef0UL));
+			Assert.IsTrue(Bitops.IsAnyByteZero(0x123456009abcdef0UL));
+		}
+
+		[TestMethod]
+		public void ContainsByteTest()
+		{
+			Assert.IsFalse(Bitops.ContainsByte(0x123456789abcdef0UL, 0xda));
+			Assert.IsFalse(Bitops.ContainsByte(0x1234567daabcdef0UL, 0xda));
+			Assert.IsTrue(Bitops.ContainsByte(0x123456da9abcdef0UL, 0xda));
+		}
+
+		[TestMethod]
+		public void LocateBitsTest()
+		{
+			Assert.AreEqual(0UL, Bitops.LocateZeroes(0x123456789abcdef0UL));
+			ulong result = Bitops.LocateZeroes(0x100400009abc00f0UL);
+			Assert.AreEqual(0x0000808000008000UL, result);
+		}
+
+		[TestMethod]
+		public void CompareBitsTest()
+		{
+			// 0x0011110011001100
+			// 0x0000ff1111001111
+			// ------------------
+			// 0x0000808000000080
+			Assert.AreEqual(0x0000808000000080UL, Bitops.CompareBytes(0x0011110011001100UL, 0x0000ff1111001111UL));
+		}
+
+		[TestMethod]
+		public void IndexTValuesTest()
+		{
+			// 0x00 11 11 00 11 00 11 00
+			// 0x00 00 ff 11 11 00 11 11
+			// -------------------------
+			// 0x00 00 80 80 00 00 00 80
+			Assert.AreEqual(0, Bitops.RightIndexOfTValue(Bitops.CompareBytes(0x0011110011001100UL, 0x0000ff1111001111UL)));
+			Assert.AreEqual(5, Bitops.LeftIndexOfTValue(Bitops.CompareBytes(0x0011110011001100UL, 0x0000ff1111001111UL)));
 		}
 	}
 }

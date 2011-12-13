@@ -2,7 +2,7 @@
 
 namespace KnuthBitops
 {
-	public class Bitops
+	static public class Bitops
 	{
 		private static readonly int[] DeBruijn32 = new[]
 		    {
@@ -21,6 +21,9 @@ namespace KnuthBitops
 		    };
 
 		private const long RulerConst64 = 0x03f79d71b4ca8b09L;
+
+		private const ulong HighBits = 0x8080808080808080UL;
+		private const ulong LowBits = 0x0101010101010101UL;
 
 		public const ulong Mu0 = 0x5555555555555555UL;
 		public const ulong Mu1 = 0x3333333333333333UL;
@@ -239,23 +242,31 @@ namespace KnuthBitops
 			return ((n | (n - 1)) + 1) & n;
 		}
 	
-		// ruler
-		public static int Ruler(long n)
+		// This is Knuth's Ruler or Rho function
+		public static int RightmostOneIndex(long n)
 		{
+			if (n == 0)
+			{
+				return -1;
+			}
 			return DeBruijn64[(((ulong)(RulerConst64 * (n & (-n))) >> 58))];
 		}
 
-		public static int Ruler(int n)
+		public static int RightmostOneIndex(int n)
 		{
+			if (n == 0)
+			{
+				return -1;
+			}
 			return DeBruijn32[(uint)(RulerConst32 * (n & (-n))) >> 27];
 		}
 	
-		public static int Ruler(short sn)
+		public static int RightmostOneIndex(short sn)
 		{
 			ushort n = (ushort) sn;
 			if (n == 0)
 			{
-				return 0;
+				return -1;
 			}
 			for (int i = 0; n != 0; n >>= 1, i++)
 			{
@@ -268,16 +279,16 @@ namespace KnuthBitops
 			return 0;
 		}
 	
-		public static int Ruler(byte n)
+		public static int RightmostOneIndex(byte n)
 		{
-			return Ruler((short)n);
+			return RightmostOneIndex((short)n);
 		}
 	
-		public static int Ruler(BigInteger n)
+		public static int RightmostOneIndex(BigInteger n)
 		{
 			if (n == BigInteger.Zero)
 			{
-				return 0;
+				return -1;
 			}
 			byte[] bytes = n.ToByteArray();
 			int zeroBits = 0;
@@ -290,7 +301,7 @@ namespace KnuthBitops
 				}
 				zeroBits += 8;
 			}
-			return zeroBits + Ruler(bytes[i]);
+			return zeroBits + RightmostOneIndex(bytes[i]);
 		}
 	
 		// lefmostOneIndex
@@ -390,7 +401,7 @@ namespace KnuthBitops
 			return (x >> 32) | (x << 32);
 		}
 
-		static ulong ReverseStep(ulong x, int iMu, int iShift)
+		private static ulong ReverseStep(ulong x, int iMu, int iShift)
 		{
 			ulong mu = Mus[iMu];
 			ulong y = (x >> iShift) & mu;
@@ -403,12 +414,134 @@ namespace KnuthBitops
 			ulong y = x - ((x >> 1) & Mu0);
 			y = (y & Mu1) + ((y >> 2) & Mu1);
 			y = (y + (y >> 4)) & Mu2;
-			return (int)((0x0101010101010101UL * y) >> 56);
+			return (int)((LowBits * y) >> 56);
 		}
 
 		internal static ulong ShiftBitsMask(ulong x, int delta, ulong mask)
 		{
 			return x ^ ((x ^ (x >> delta)) & mask);
+		}
+
+		// Increment the fragmented field represented by the mask inside
+		// a word of zeroes as described on p. 150 of TAOCP V4A.
+		public static ulong NextFragmentedField(ulong x, ulong mask)
+		{
+			return (x - mask) & mask;
+		}
+
+		// Increment the subcube vertex as described on p. 150 of TAOCP V4A.
+		// Really, this is just the NextFragmentedField algorithm allowing
+		// for potential ones in the word around the fragmented field.
+		public static ulong NextSubcubeVertex(ulong x, ulong a, ulong b)
+		{
+			return ((x - (a + b)) & a) + b;
+		}
+
+		// Add two fragmented fields as described on p. 150 of TAOCP V4A.
+		public static ulong AddFragmentedFields(ulong x, ulong y, ulong mask)
+		{
+			return ((x & mask) + (y | ~mask)) & mask;
+		}
+
+		// Add the 8 bytes in one long with the 8 bytes in another as described on
+		// p. 151 of TAOCP V4A.
+		public static ulong AddBytes(ulong x, ulong y)
+		{
+			return ((x ^ y) & HighBits) ^ ((x & ~HighBits) + (y & ~HighBits));
+		}
+
+		// Subtract the 8 bytes in one long with the 8 bytes in another as described in
+		// exercise 88 of section 7.1.3 of TAOCP V4A.
+		public static ulong SubtractBytes(ulong x, ulong y)
+		{
+			return ((x ^ ~y) & HighBits) ^ ((x | HighBits) - (y & ~HighBits));
+		}
+
+		// Average bytes as described on p. 151 of TAOCP V4A.
+		public static ulong AverageBytes(ulong x, ulong y)
+		{
+			return (((x ^ y) & ~LowBits) >> 1) + (x & y);
+		}
+
+		public static bool IsAnyByteZero(ulong n)
+		{
+			return (HighBits & (n - LowBits) & ~n) != 0;
+		}
+
+		public static ulong LocateZeroes(ulong n)
+		{
+			return HighBits & ~(n | ((n | HighBits) - LowBits));
+		}
+
+		public static bool ContainsByte(ulong n, byte b)
+		{
+			return IsAnyByteZero(n ^ RepeatByte(b));
+		}
+
+		// Returns a long with b in every byte
+		public static ulong RepeatByte(byte b)
+		{
+			// This appears to be barely faster than LowBits * b, but not by much
+			ulong z = (ulong)((b << 8) | b);
+			z = (z << 16) | z;
+			return (z << 32) | z;
+		}
+
+		// Replaces the j'th byte with 128 * [ x[j] < y[j] ] as documented on p. 153 of TAOCP V4A.
+		public static ulong CompareBytes(ulong x, ulong y)
+		{
+			ulong z = (x | HighBits) - (y & ~HighBits);
+			return HighBits & ~Median(x, ~y, z);
+		}
+
+		private static int[] _rBits;
+		private static int[] _lBits;
+
+		private static ulong GatherHighBits(ulong t)
+		{
+			t = t + (t << 7);
+			t = t + (t << 14);
+			t = t + (t << 28);
+			return t >> 56;
+		}
+
+		public static int LeftIndexOfTValue(ulong t)
+		{
+			if (t == 0)
+			{
+				return -1;
+			}
+			if (_lBits == null)
+			{
+				_lBits = new int[256];
+				for (byte i = 0; i < 255; i++)
+				{
+					_lBits[i] = LeftmostOneIndex(i);
+				}
+			}
+			return _lBits[GatherHighBits(t)];
+		}
+
+		public static int RightIndexOfTValue(ulong t)
+		{
+			if (t == 0)
+			{
+				return -1;
+			}
+			if (_rBits == null)
+			{
+				_rBits = new int[256];
+				for (byte i = 0; i < 255; i++)
+				{
+					_rBits[i] = RightmostOneIndex(i);
+				}
+			}
+			return _rBits[GatherHighBits(t)];
+		}
+
+		public static ulong Median(ulong x, ulong y, ulong z)
+		{
+			return (x & y) | (y & z) | (x & z);
 		}
 	}
 }
