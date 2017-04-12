@@ -2,7 +2,7 @@
 
 namespace KnuthBitops
 {
-	static public class Bitops
+	public static class Bitops
 	{
 		private static readonly int[] DeBruijn32 = new[]
 		    {
@@ -337,7 +337,7 @@ namespace KnuthBitops
 	
 		public static int LeftmostOneIndex(byte i)
 		{
-			if (i < 16 && i >= 0)
+			if (i < 16)
 			{
 				return LeftmostOneIndexNybble(i);
 			}
