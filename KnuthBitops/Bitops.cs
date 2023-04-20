@@ -317,7 +317,7 @@ namespace KnuthBitops
 	
 		public static int LeftmostOneIndex(int i)
 		{
-			short shifted = (short)((ushort)i >> 16);
+			short shifted = (short)((uint)i >> 16);
 			if (shifted != 0)
 			{
 				return 16 + LeftmostOneIndex(shifted);
